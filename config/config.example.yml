@@ -1,0 +1,122 @@
+# IRCTC Railway Booking Bot Configuration
+# Copy this file to config.yml and fill in your details
+
+irctc:
+  # IRCTC User Credentials
+  username: "your_irctc_username"
+  password: "your_encrypted_password"
+  
+  # Booking Preferences
+  tatkal_time: "11:00:00"  # Sleeper class Tatkal time (HH:MM:SS)
+  ac_time: "10:00:00"      # AC class booking time (HH:MM:SS)
+  
+  # Base URLs
+  base_url: "https://www.irctc.co.in"
+  api_url: "https://api.irctc.co.in"
+
+# Captcha Solving Configuration
+captcha:
+  # Provider: "2captcha" or "anticaptcha"
+  provider: "2captcha"
+  api_key: "your_2captcha_api_key"
+  
+  # Captcha solving timeout (seconds)
+  timeout: 300
+  
+  # Retry attempts for captcha
+  max_retries: 3
+
+# Payment Gateway Configuration
+payment:
+  # Preferred gateway: "irctc_ewallet", "upi", "card"
+  gateway: "irctc_ewallet"
+  
+  # Auto-fill payment details
+  auto_pay: true
+  
+  # Preferred payment method
+  preferred_method: "wallet"
+
+# Browser Automation Settings
+browser:
+  # Browser type: "chromium", "firefox", "webkit"
+  browser_type: "chromium"
+  
+  # Headless mode (true = no GUI, false = visible browser)
+  headless: false
+  
+  # Browser timeout (milliseconds)
+  timeout: 30000
+  
+  # Navigation timeout (milliseconds)
+  navigation_timeout: 60000
+  
+  # Viewport size
+  viewport:
+    width: 1920
+    height: 1080
+
+# Time Synchronization Settings
+timing:
+  # NTP servers for time sync
+  ntp_servers:
+    - "pool.ntp.org"
+    - "time.nist.gov"
+    - "time.google.com"
+  
+  # NTP sync interval (seconds)
+  sync_interval: 5
+  
+  # Pre-login offset (seconds before booking window)
+  pre_login_offset: 60
+  
+  # Pre-fill data offset (seconds before booking window)
+  pre_fill_offset: 45
+
+# Retry Configuration
+retry:
+  # Maximum retry attempts
+  max_attempts: 5
+  
+  # Initial retry delay (seconds)
+  initial_delay: 1
+  
+  # Max retry delay (seconds)
+  max_delay: 30
+  
+  # Exponential backoff multiplier
+  backoff_multiplier: 2
+
+# Logging Configuration
+logging:
+  # Log level: DEBUG, INFO, WARNING, ERROR, CRITICAL
+  level: "INFO"
+  
+  # Log file location
+  log_dir: "logs"
+  
+  # Max log file size (MB)
+  max_size: 10
+  
+  # Number of backup files to keep
+  backup_count: 5
+
+# Database Configuration
+database:
+  # Database type: "sqlite", "postgresql"
+  type: "sqlite"
+  
+  # SQLite database file path
+  sqlite_db: "data/booking.db"
+
+# Notification Settings
+notifications:
+  # Enable email notifications
+  email_enabled: false
+  
+  # Email configuration
+  email:
+    smtp_server: "smtp.gmail.com"
+    smtp_port: 587
+    sender_email: "your_email@gmail.com"
+    sender_password: "your_app_password"
