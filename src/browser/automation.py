@@ -1,8 +1,15 @@
 """Browser automation using Playwright for IRCTC booking"""
 
 import asyncio
-from typing import Optional, Dict, Any
-from playwright.async_api import async_playwright, Page, Browser, BrowserContext
+from typing import Optional, Dict, Any, List, Sequence
+from playwright.async_api import (
+    async_playwright,
+    Page,
+    Browser,
+    BrowserContext,
+    TimeoutError as PlaywrightTimeoutError,
+    ElementHandle,
+)
 from ..utils.logger import setup_logger
 from ..utils.constants import (
     DEFAULT_VIEWPORT_WIDTH,
@@ -96,6 +103,7 @@ class BrowserAutomation:
         try:
             self.page = await self.context.new_page()
             self.page.set_default_timeout(self.timeout)
+            self.page.set_default_navigation_timeout(self.timeout)
             logger.info("New page created")
             return self.page
         
@@ -119,6 +127,29 @@ class BrowserAutomation:
         except Exception as e:
             logger.error(f"Failed to navigate to {url}: {e}")
             raise
+
+    async def wait_for_any(
+        self,
+        selectors: Sequence[str],
+        timeout_ms: Optional[int] = None,
+    ) -> str:
+        """Wait for first available selector and return it."""
+        if not self.page:
+            raise RuntimeError("Page not created")
+
+        timeout = timeout_ms if timeout_ms is not None else self.timeout
+        last_error = None
+
+        for selector in selectors:
+            try:
+                await self.page.wait_for_selector(selector, timeout=timeout)
+                return selector
+            except Exception as exc:
+                last_error = exc
+
+        raise PlaywrightTimeoutError(
+            f"None of selectors matched within timeout: {selectors}"
+        ) from last_error
     
     async def fill_input(self, selector: str, value: str) -> None:
         """Fill input field
@@ -137,6 +168,12 @@ class BrowserAutomation:
         except Exception as e:
             logger.error(f"Failed to fill {selector}: {e}")
             raise
+
+    async def fill_any(self, selectors: Sequence[str], value: str) -> str:
+        """Fill first matching selector from candidates."""
+        selector = await self.wait_for_any(selectors)
+        await self.fill_input(selector, value)
+        return selector
     
     async def click(self, selector: str) -> None:
         """Click element
@@ -154,6 +191,12 @@ class BrowserAutomation:
         except Exception as e:
             logger.error(f"Failed to click {selector}: {e}")
             raise
+
+    async def click_any(self, selectors: Sequence[str]) -> str:
+        """Click first matching selector from candidates."""
+        selector = await self.wait_for_any(selectors)
+        await self.click(selector)
+        return selector
     
     async def get_text(self, selector: str) -> str:
         """Get element text
@@ -174,6 +217,40 @@ class BrowserAutomation:
         except Exception as e:
             logger.error(f"Failed to get text from {selector}: {e}")
             raise
+
+    async def get_text_any(self, selectors: Sequence[str]) -> str:
+        """Read text from first matching selector from candidates."""
+        selector = await self.wait_for_any(selectors)
+        return await self.get_text(selector)
+
+    async def query_all_any(
+        self, selectors: Sequence[str]
+    ) -> tuple[str, List[ElementHandle]]:
+        """Return elements for first selector that yields any nodes."""
+        if not self.page:
+            raise RuntimeError("Page not created")
+
+        for selector in selectors:
+            try:
+                elements = await self.page.query_selector_all(selector)
+                if elements:
+                    return selector, elements
+            except Exception:
+                continue
+        return "", []
+
+    async def exists_any(self, selectors: Sequence[str]) -> bool:
+        """Check if any selector exists in DOM."""
+        if not self.page:
+            raise RuntimeError("Page not created")
+
+        for selector in selectors:
+            try:
+                if await self.page.query_selector(selector):
+                    return True
+            except Exception:
+                continue
+        return False
     
     async def take_screenshot(self, path: str) -> None:
         """Take screenshot
