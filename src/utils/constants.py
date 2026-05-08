@@ -12,7 +12,7 @@ TATKAL_AC_TIME = time(10, 0, 0)       # 10:00 AM
 
 # Timeouts (in seconds)
 BOOKING_TIMEOUT = 300  # 5 minutes
-DEFAULT_PAGE_TIMEOUT = 30  # 30 seconds
+DEFAULT_PAGE_TIMEOUT = 60  # 60 seconds (INCREASED FROM 30)
 PAYMENT_TIMEOUT = 180  # 3 minutes
 
 # NTP Servers
