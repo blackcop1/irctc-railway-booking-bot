@@ -2,6 +2,7 @@
 
 import asyncio
 import sys
+import os
 from pathlib import Path
 from typing import Optional
 from src.utils.logger import setup_logger
@@ -9,6 +10,10 @@ from src.services import IRCTCBookingService
 
 # Setup logging
 logger = setup_logger(__name__)
+
+# Set timeout configuration
+os.environ.setdefault('DEFAULT_PAGE_TIMEOUT', '60')
+os.environ.setdefault('BOOKING_TIMEOUT', '60')
 
 
 async def main(
@@ -40,7 +45,7 @@ async def main(
     """
     try:
         logger.info("Starting IRCTC Railway Booking Bot")
-        logger.info(f"Booking route: {from_station} → {to_station}")
+        logger.info(f"Booking route: {from_station} -> {to_station}")
         logger.info(f"Travel date: {travel_date}, Class: {class_type}, Quota: {quota}")
         
         # Initialize booking service
@@ -145,7 +150,6 @@ def load_config(config_file: Optional[str] = None) -> dict:
     }
     
     # Load from environment variables
-    import os
     config["username"] = os.getenv("IRCTC_USERNAME", config["username"])
     config["password"] = os.getenv("IRCTC_PASSWORD", config["password"])
     config["captcha_api_key"] = os.getenv("CAPTCHA_API_KEY", config["captcha_api_key"])
@@ -204,26 +208,49 @@ async def run(config: dict) -> int:
 
 
 if __name__ == "__main__":
+    # Load .env file if it exists
+    try:
+        from dotenv import load_dotenv
+        load_dotenv()
+    except ImportError:
+        pass
+    
     # Parse command line arguments
     import argparse
     
     parser = argparse.ArgumentParser(
-        description="IRCTC Railway Booking Bot - Automated ticket booking"
+        description="IRCTC Railway Booking Bot - Automated ticket booking",
+        formatter_class=argparse.RawDescriptionHelpFormatter,
+        epilog="""
+Examples:
+  # Using .env file
+  python main.py
+  
+  # Using command line arguments
+  python main.py --username myuser --password mypass --captcha-key mykey --from NDLS --to MMCT --date 15-05-2026
+  
+  # Using config file
+  python main.py --config config.json
+  
+  # Tatkal booking
+  python main.py --from NDLS --to MMCT --date 15-05-2026 --quota TQ
+        """
     )
+    
     parser.add_argument("--config", help="Configuration file path (JSON)")
     parser.add_argument("--username", help="IRCTC username")
     parser.add_argument("--password", help="IRCTC password")
     parser.add_argument("--captcha-key", dest="captcha_api_key", help="2Captcha API key")
-    parser.add_argument("--from", dest="from_station", help="Departure station code")
-    parser.add_argument("--to", dest="to_station", help="Destination station code")
-    parser.add_argument("--date", dest="travel_date", help="Travel date (DD-MM-YYYY)")
-    parser.add_argument("--class", dest="class_type", default="SL", help="Class type (default: SL)")
-    parser.add_argument("--quota", default="GN", help="Quota type (default: GN)")
-    parser.add_argument("--headless", action="store_true", help="Run browser in headless mode")
+    parser.add_argument("--from", dest="from_station", help="Departure station code (e.g., NDLS)")
+    parser.add_argument("--to", dest="to_station", help="Destination station code (e.g., MMCT)")
+    parser.add_argument("--date", dest="travel_date", help="Travel date (DD-MM-YYYY format)")
+    parser.add_argument("--class", dest="class_type", default="SL", help="Class type: SL, AC2, AC3, 1A, 2A, 3A (default: SL)")
+    parser.add_argument("--quota", default="GN", help="Quota type: GN, TQ, PT, RL (default: GN)")
+    parser.add_argument("--headless", action="store_true", help="Run browser in headless mode (no GUI)")
     
     args = parser.parse_args()
     
-    # Load configuration
+    # Load configuration from file first
     config = load_config(args.config)
     
     # Override with command line arguments
@@ -247,5 +274,12 @@ if __name__ == "__main__":
         config["headless"] = True
     
     # Run the bot
-    exit_code = asyncio.run(run(config))
-    sys.exit(exit_code)
+    try:
+        exit_code = asyncio.run(run(config))
+        sys.exit(exit_code)
+    except KeyboardInterrupt:
+        logger.info("Application terminated by user")
+        sys.exit(0)
+    except Exception as e:
+        logger.error(f"Fatal error: {e}", exc_info=True)
+        sys.exit(1)
