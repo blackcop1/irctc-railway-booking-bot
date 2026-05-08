@@ -211,7 +211,17 @@ python main.py \
   --to MMCT \
   --date 15-05-2026 \
   --class SL \
-  --quota TQ
+  --quota TQ \
+  --passengers-json '[{"name":"Alice","age":29,"gender":"F","berth_preference":"LB"}]'
+```
+
+```bash
+# Use passengers file (JSON array)
+python main.py --passengers-file passengers.json
+
+# Show local booking history/statistics
+python main.py --history --history-limit 20
+python main.py --stats
 ```
 
 ### Method 2: Configuration File
@@ -293,6 +303,7 @@ Schedule:
 | CAPTCHA timeout | Insufficient balance | Add balance to 2Captcha account |
 | Login failed | Wrong credentials | Verify manually on IRCTC website |
 | Connection timeout | Network issue | Check internet, try different network |
+| Booking reaches payment page without PNR | Manual payment step required | Complete payment manually and check history/status |
 
 ### Debug Mode
 
