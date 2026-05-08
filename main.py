@@ -30,6 +30,7 @@ async def main(
     headless: bool = False,
     passengers: Optional[List[Dict[str, str]]] = None,
     use_ntp_sync: bool = True,
+    user_id: int = 1,
 ) -> bool:
     """Main booking workflow
     
@@ -51,6 +52,14 @@ async def main(
         logger.info("Starting IRCTC Railway Booking Bot")
         logger.info(f"Booking route: {from_station} -> {to_station}")
         logger.info(f"Travel date: {travel_date}, Class: {class_type}, Quota: {quota}")
+        passenger_list = passengers or [
+            {
+                "name": "Test Passenger",
+                "age": "30",
+                "gender": "M",
+                "berth_preference": "LB",
+            }
+        ]
         
         # Initialize booking service
         async with IRCTCBookingService(
@@ -59,6 +68,7 @@ async def main(
             captcha_api_key=captcha_api_key,
             headless=headless,
             use_ntp_sync=use_ntp_sync,
+            user_id=user_id,
         ) as service:
             
             # Login to IRCTC
@@ -75,7 +85,7 @@ async def main(
                 from_station=from_station,
                 to_station=to_station,
                 travel_date=travel_date,
-                passenger_count=len(passengers or []),
+                passenger_count=len(passenger_list) if passenger_list else 1,
                 class_type=class_type,
             )
             
@@ -88,7 +98,10 @@ async def main(
             # Wait for Tatkal window if needed
             if quota == "TQ":
                 logger.info("Step 3: Waiting for Tatkal booking window...")
-                await service.wait_for_tatkal_window(class_type=class_type)
+                await service.wait_for_tatkal_window(
+                    class_type=class_type,
+                    travel_date=travel_date,
+                )
                 logger.info("✓ Tatkal window opened")
             
             # Book first available train
@@ -98,7 +111,7 @@ async def main(
                 
                 pnr = await service.book_train(
                     train_number=train['train_number'],
-                    passengers=passengers or [],
+                    passengers=passenger_list,
                     from_station=from_station,
                     to_station=to_station,
                     travel_date=travel_date,
@@ -144,6 +157,7 @@ def load_config(config_file: Optional[str] = None) -> dict:
         "headless": False,
         "use_ntp_sync": os.getenv("USE_NTP_SYNC", "true").lower() == "true",
         "passengers_json": os.getenv("PASSENGERS_JSON", ""),
+        "user_id": int(os.getenv("IRCTC_USER_ID", "1")),
     }
     
     # Load from environment variables
@@ -246,6 +260,7 @@ async def run(config: dict) -> int:
         headless=config.get("headless", False),
         passengers=passengers,
         use_ntp_sync=config.get("use_ntp_sync", True),
+        user_id=config.get("user_id", 1),
     )
     return 0 if success else 1
 
@@ -295,6 +310,7 @@ Examples:
     parser.add_argument("--history", action="store_true", help="Show recent booking history and exit")
     parser.add_argument("--history-limit", type=int, default=10, help="History rows to display")
     parser.add_argument("--stats", action="store_true", help="Show booking stats and exit")
+    parser.add_argument("--user-id", type=int, help="Local numeric user id for DB tracking")
     parser.add_argument(
         "--no-ntp-sync",
         action="store_true",
@@ -331,6 +347,8 @@ Examples:
         config["passengers_file"] = args.passengers_file
     if args.no_ntp_sync:
         config["use_ntp_sync"] = False
+    if args.user_id is not None:
+        config["user_id"] = args.user_id
 
     if args.history:
         print_booking_history(limit=args.history_limit)

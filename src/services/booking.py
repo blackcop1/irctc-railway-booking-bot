@@ -42,7 +42,7 @@ TRAIN_ROWS_EVAL_SCRIPT = """
   );
   cards.forEach((card) => {
     const text = card.innerText || "";
-    const numberMatch = text.match(/\\b\\d{5}\\b/);
+    const numberMatch = text.match(/\\b\\d{5,6}\\b/);
     const trainNumber = numberMatch ? numberMatch[0] : "";
     const lines = text.split("\\n").map(v => v.trim()).filter(Boolean);
     const trainName = extractTrainName(lines);
@@ -94,6 +94,7 @@ class IRCTCBookingService:
         captcha_api_key: str,
         headless: bool = False,
         use_ntp_sync: bool = True,
+        user_id: int = 1,
     ):
         """Initialize IRCTC booking service
         
@@ -109,6 +110,7 @@ class IRCTCBookingService:
         self.captcha_api_key = captcha_api_key
         self.headless = headless
         self.use_ntp_sync = use_ntp_sync
+        self.user_id = user_id
         
         # Initialize components
         self.browser = BrowserAutomation(headless=headless)
@@ -167,7 +169,7 @@ class IRCTCBookingService:
         db_ops = DatabaseOperations(db_session)
         try:
             attempt = BookingAttempt(
-                user_id=1,
+                user_id=self.user_id,
                 from_station=from_station,
                 to_station=to_station,
                 travel_date=datetime.strptime(travel_date, "%d-%m-%Y"),
@@ -578,7 +580,11 @@ class IRCTCBookingService:
             logger.error(f"Booking error: {e}")
             return None
     
-    async def wait_for_tatkal_window(self, class_type: str = "SL") -> None:
+    async def wait_for_tatkal_window(
+        self,
+        class_type: str = "SL",
+        travel_date: Optional[str] = None,
+    ) -> None:
         """Wait until Tatkal booking window opens
         
         Args:
@@ -588,11 +594,17 @@ class IRCTCBookingService:
             logger.warning("NTP sync not enabled. Tatkal timing may be inaccurate.")
             return
         
-        tatkal_time = TATKAL_SLEEPER_TIME if class_type.upper() == "SL" else TATKAL_AC_TIME
+        tatkal_time = (
+            TATKAL_SLEEPER_TIME if class_type.upper() == "SL" else TATKAL_AC_TIME
+        )
         now = self.time_sync.get_synced_time()
         target_datetime = datetime.combine(now.date(), tatkal_time)
         if now >= target_datetime:
-            target_datetime += timedelta(days=1)
+            date_hint = f" for travel date {travel_date}" if travel_date else ""
+            raise RuntimeError(
+                f"Tatkal window already passed today{date_hint}. "
+                "Please run before window opening."
+            )
 
         pre_login_time = target_datetime - timedelta(seconds=PRE_LOGIN_OFFSET)
         pre_fill_time = target_datetime - timedelta(seconds=PRE_FILL_OFFSET)
