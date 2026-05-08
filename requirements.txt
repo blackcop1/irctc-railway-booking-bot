@@ -1,28 +1,24 @@
-# Core Dependencies
+# Core Dependencies (Pre-built wheels only - no C++ needed!)
 playwright==1.40.0
 python-dotenv==1.0.0
 requests==2.31.0
-httpx==0.25.2
 
-# Database (SQLite included in Python)
-SQLAlchemy==2.0.23
+# Database
+sqlalchemy==2.0.23
 
 # Time Synchronization
 ntplib==0.4.0
 
 # Configuration
-PyYAML==6.0.1
+pyyaml==6.0.1
 
-# Data Validation (Use older version to avoid Rust compilation)
+# Data Validation (Pure Python version)
 pydantic==1.10.13
-
-# Async Support
-aiohttp==3.9.1
 
 # Security
 cryptography==41.0.7
 
-# Logging & Monitoring
+# Logging
 python-json-logger==2.0.7
 
 # Captcha Solving
