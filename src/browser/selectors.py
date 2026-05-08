@@ -23,6 +23,7 @@ LOGIN_SELECTORS = {
     ],
     "submit": [
         "button[type='submit']",
+        "button:has-text('SIGNIN')",
         "button:has-text('SIGN IN')",
         "button:has-text('Login')",
     ],

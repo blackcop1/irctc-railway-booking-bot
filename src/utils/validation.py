@@ -12,7 +12,10 @@ ALLOWED_QUOTAS = {"GN", "TQ", "PT", "RL"}
 ALLOWED_GENDERS = {"M", "F", "T"}
 
 
-def parse_passengers(passengers_json: str = "", passengers_file: str = "") -> List[Dict[str, str]]:
+def parse_passengers(
+    passengers_json: str = "",
+    passengers_file: str = "",
+) -> List[Dict[str, str]]:
     """Parse passengers from JSON string or file."""
     if passengers_json:
         parsed = json.loads(passengers_json)
@@ -33,12 +36,18 @@ def parse_passengers(passengers_json: str = "", passengers_file: str = "") -> Li
     return normalize_passengers(parsed)
 
 
-def normalize_passengers(passengers: List[Dict[str, Any]]) -> List[Dict[str, str]]:
+def normalize_passengers(
+    passengers: List[Dict[str, Any]],
+) -> List[Dict[str, str]]:
     """Validate and normalize passenger records."""
-    if not (MIN_PASSENGERS_PER_BOOKING <= len(passengers) <= MAX_PASSENGERS_PER_BOOKING):
+    if not (
+        MIN_PASSENGERS_PER_BOOKING
+        <= len(passengers)
+        <= MAX_PASSENGERS_PER_BOOKING
+    ):
         raise ValueError(
-            f"Passengers count must be between {MIN_PASSENGERS_PER_BOOKING} and "
-            f"{MAX_PASSENGERS_PER_BOOKING}"
+            "Passengers count must be between "
+            f"{MIN_PASSENGERS_PER_BOOKING} and {MAX_PASSENGERS_PER_BOOKING}"
         )
 
     normalized: List[Dict[str, str]] = []
@@ -79,9 +88,15 @@ def validate_booking_config(config: Dict[str, Any]) -> None:
         "to_station",
         "travel_date",
     ]
-    missing = [field for field in required_fields if not str(config.get(field, "")).strip()]
+    missing = [
+        field
+        for field in required_fields
+        if not str(config.get(field, "")).strip()
+    ]
     if missing:
-        raise ValueError(f"Missing required configuration: {', '.join(missing)}")
+        raise ValueError(
+            f"Missing required configuration: {', '.join(missing)}"
+        )
 
     from_station = str(config["from_station"]).strip().upper()
     to_station = str(config["to_station"]).strip().upper()

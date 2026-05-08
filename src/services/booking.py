@@ -28,6 +28,61 @@ from ..database import (
 
 logger = setup_logger(__name__)
 
+TRAIN_ROWS_EVAL_SCRIPT = """
+() => {
+  const extractTrainName = (lines) => {
+    if (!lines.length) return "Unknown";
+    if (lines.length === 1) return lines[0];
+    return lines[1] || lines[0];
+  };
+
+  const rows = [];
+  const cards = document.querySelectorAll(
+    "app-train-list .train_avl_enq_box, .train_avl_enq_box, table tbody tr"
+  );
+  cards.forEach((card) => {
+    const text = card.innerText || "";
+    const numberMatch = text.match(/\\b\\d{5}\\b/);
+    const trainNumber = numberMatch ? numberMatch[0] : "";
+    const lines = text.split("\\n").map(v => v.trim()).filter(Boolean);
+    const trainName = extractTrainName(lines);
+    const departure = (text.match(/\\b([01]?\\d|2[0-3]):[0-5]\\d\\b/g) || [])[0] || "";
+    const arrival = (text.match(/\\b([01]?\\d|2[0-3]):[0-5]\\d\\b/g) || [])[1] || "";
+    if (trainNumber) {
+      rows.push({
+        train_number: trainNumber,
+        train_name: trainName || "Unknown",
+        departure_time: departure,
+        arrival_time: arrival,
+        raw: text
+      });
+    }
+  });
+  return rows;
+}
+"""
+
+CLICK_TRAIN_BOOK_SCRIPT = """
+(trainNumber) => {
+  const allRows = Array.from(
+    document.querySelectorAll(
+      "app-train-list .train_avl_enq_box, .train_avl_enq_box, table tbody tr"
+    )
+  );
+  for (const row of allRows) {
+    const text = row.innerText || "";
+    if (text.includes(trainNumber)) {
+      const btn = row.querySelector("button");
+      if (btn) {
+        btn.click();
+        return true;
+      }
+    }
+  }
+  return false;
+}
+"""
+
 
 class IRCTCBookingService:
     """Main IRCTC booking service"""
@@ -214,35 +269,7 @@ class IRCTCBookingService:
         if not self.browser.page:
             return []
 
-        data = await self.browser.page.evaluate(
-            """
-            () => {
-              const rows = [];
-              const cards = document.querySelectorAll(
-                "app-train-list .train_avl_enq_box, .train_avl_enq_box, table tbody tr"
-              );
-              cards.forEach((card) => {
-                const text = card.innerText || "";
-                const numberMatch = text.match(/\\b\\d{5}\\b/);
-                const trainNumber = numberMatch ? numberMatch[0] : "";
-                const lines = text.split("\\n").map(v => v.trim()).filter(Boolean);
-                const trainName = lines.find(v => /EXP|SF|MAIL|RAJDHANI|SHATABDI|DURONTO|INTERCITY/i.test(v)) || (lines[1] || "");
-                const departure = (text.match(/\\b([01]?\\d|2[0-3]):[0-5]\\d\\b/g) || [])[0] || "";
-                const arrival = (text.match(/\\b([01]?\\d|2[0-3]):[0-5]\\d\\b/g) || [])[1] || "";
-                if (trainNumber) {
-                  rows.push({
-                    train_number: trainNumber,
-                    train_name: trainName || "Unknown",
-                    departure_time: departure,
-                    arrival_time: arrival,
-                    raw: text
-                  });
-                }
-              });
-              return rows;
-            }
-            """
-        )
+        data = await self.browser.page.evaluate(TRAIN_ROWS_EVAL_SCRIPT)
         return data if isinstance(data, list) else []
 
     def _upsert_train_cache(
@@ -454,27 +481,7 @@ class IRCTCBookingService:
                 raise RuntimeError("Session expired and re-login failed")
 
             clicked = await self.browser.page.evaluate(
-                """
-                (trainNumber) => {
-                  const allRows = Array.from(
-                    document.querySelectorAll(
-                      "app-train-list .train_avl_enq_box, .train_avl_enq_box, table tbody tr"
-                    )
-                  );
-                  for (const row of allRows) {
-                    const text = row.innerText || "";
-                    if (text.includes(trainNumber)) {
-                      const btn = row.querySelector("button");
-                      if (btn) {
-                        btn.click();
-                        return true;
-                      }
-                    }
-                  }
-                  return false;
-                }
-                """,
-                train_number,
+                CLICK_TRAIN_BOOK_SCRIPT, train_number
             )
             if not clicked:
                 await self.browser.click_any(SEARCH_SELECTORS["book_button"])

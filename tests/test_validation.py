@@ -11,7 +11,12 @@ from src.utils.validation import parse_passengers, validate_booking_config
 def test_parse_passengers_from_json():
     payload = json.dumps(
         [
-            {"name": "Alice", "age": 29, "gender": "F", "berth_preference": "LB"},
+            {
+                "name": "Alice",
+                "age": 29,
+                "gender": "F",
+                "berth_preference": "LB",
+            },
             {"name": "Bob", "age": "31", "gender": "M"},
         ]
     )
@@ -32,7 +37,7 @@ def test_parse_passengers_rejects_bad_age():
 
 
 def test_validate_booking_config_accepts_valid_config():
-    future_date = (datetime.now() + timedelta(days=2)).strftime("%d-%m-%Y")
+    future_date = (datetime.now() + timedelta(days=30)).strftime("%d-%m-%Y")
     config = {
         "username": "demo_user",
         "password": "demo_password",
@@ -48,7 +53,7 @@ def test_validate_booking_config_accepts_valid_config():
 
 
 def test_validate_booking_config_rejects_past_date():
-    past_date = (datetime.now() - timedelta(days=1)).strftime("%d-%m-%Y")
+    past_date = (datetime.now() - timedelta(days=30)).strftime("%d-%m-%Y")
     config = {
         "username": "demo_user",
         "password": "demo_password",

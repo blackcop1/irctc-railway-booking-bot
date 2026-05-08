@@ -26,7 +26,11 @@ class NotificationManager:
         """Dispatch booking status notifications."""
         if self.email_enabled:
             self._send_email(
-                subject="IRCTC Booking Success" if success else "IRCTC Booking Failed",
+                subject=(
+                    "IRCTC Booking Success"
+                    if success
+                    else "IRCTC Booking Failed"
+                ),
                 body=message,
             )
 
@@ -37,7 +41,9 @@ class NotificationManager:
             and self.smtp_password
             and self.notification_email
         ):
-            logger.warning("Email notification skipped due to incomplete SMTP config")
+            logger.warning(
+                "Email notification skipped due to incomplete SMTP config"
+            )
             return
 
         msg = MIMEText(body)
@@ -46,7 +52,11 @@ class NotificationManager:
         msg["To"] = self.notification_email
 
         try:
-            with smtplib.SMTP(self.smtp_server, self.smtp_port, timeout=15) as server:
+            with smtplib.SMTP(
+                self.smtp_server,
+                self.smtp_port,
+                timeout=15,
+            ) as server:
                 server.starttls()
                 server.login(self.smtp_username, self.smtp_password)
                 server.sendmail(
@@ -56,4 +66,6 @@ class NotificationManager:
                 )
             logger.info("Email notification sent")
         except Exception as exc:
-            logger.error(f"Failed to send email notification: {exc}")
+            logger.error(
+                f"Failed to send email notification: {exc}"
+            )
